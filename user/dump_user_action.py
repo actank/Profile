@@ -16,7 +16,8 @@ def dump_user_id():
     #取最近三个月下过订单的用户作为活跃用户
     today = datetime.datetime.today()
     #暂时用10天下过订单的用户做小规模测试
-    date_begin = (today - datetime.timedelta(days=10)).strftime('%Y-%m-%d')
+    #中期用户画像为90天
+    date_begin = (today - datetime.timedelta(days=90)).strftime('%Y-%m-%d')
     date_end = today.strftime('%Y-%m-%d')
 
     host, port, user, pwd, db = MySQLConfigApi.get_param_from_ini_file('higo_order', 0, False)
@@ -87,8 +88,9 @@ def dump_user_favorite_goods_id():
 
 
 def main():
-    #dump_user_id()
+    dump_user_id()
     dump_user_order_goods_id()
+    return
         
 
 if __name__ == "__main__":

@@ -83,9 +83,14 @@ def cal_user_ncategory_preference():
     for uid, ncategory_dict in sum_user_n_category_id_action_num.items():
         for ncategory_id, origin_score in ncategory_dict.items():
             weight = ("%.2f" % (0.01 + (origin_score - 0) / max_n_category_id_weight[ncategory_id]))
-            f1.write("%s\t%s\t%s\n" % (uid, n_category_id_2_name_map[ncategory_id], weight))
+            f1.write("%s{\c}%s{\c}%s{\c}%s\n" % (uid, ncategory_id, n_category_id_2_name_map[ncategory_id], weight))
  
     f1.close()
+    return
+def load_to_hive():
+    return
+def load_to_redis():
+    return
 def main():
     
     #get_goods_lv2_category_info()
@@ -93,6 +98,7 @@ def main():
     #gc.collect()
     #gc.disable()
     cal_user_ncategory_preference()
+    load_to_hive()
     return
 
 if __name__ == "__main__":
