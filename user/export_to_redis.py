@@ -37,7 +37,8 @@ def load_user_brand_preference():
                     user_profile[key_bak].setdefault("brand_preference", weight_list)
                     weight_list = []
                 key_bak = key
-            if float(weight) < 0.2:
+            #品牌有持久性，weight大于0.05即可认为有兴趣
+            if float(weight) < 0.05:
                 continue
             weight_list.append({"brand_id" : brand_id, "brand_name" : brand_name, "weight" : weight})
     return

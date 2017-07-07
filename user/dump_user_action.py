@@ -9,6 +9,7 @@ from common.mysql_conf_api import MySQLConfigApi
 import datetime
 import pickle
 import logging
+import traceback
 
 def dump_user_id():
     cmd = "rm -rf data/user_id.txt"
@@ -72,10 +73,11 @@ def dump_user_order_goods_id():
                     line['uid'] = uid
                     line['order_ctime'] = line['order_ctime'].strftime('%Y-%m-%d')
                     ret.append(line)
-            pickle.dump(ret, f, 1)
+                    f.write("%s\t%s\t%s\t%s\n" % (uid, line['order_id'], line['goods_id'], line['order_ctime']))
                     
     except Exception,e:
         print e
+        print traceback.print_exc()
     finally:
         db_order.close()
     return

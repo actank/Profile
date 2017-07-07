@@ -19,7 +19,9 @@ def get_goods_brand_info():
     os.system(cmd)
     user_order_goodsid_list = []
     with open("data/user_order_goodsid.txt", "r") as f:
-        user_order_goodsid_list = pickle.load(f)
+        for line in f:
+            uid, order_id, goods_id, order_ctime = line.strip().split("\t")
+            user_order_goodsid_list.append({'uid' : uid, 'goods_id' : goods_id, 'order_id' : order_id, 'order_ctime' : order_ctime})
     #扩展品牌信息
     host, port, user, pwd, db = MySQLConfigApi.get_param_from_ini_file('higo_goods', 0, False)
     db = torndb.Connection(host + ':' + port, db, user, pwd)
@@ -76,13 +78,18 @@ def cal_user_brand_preference():
                 max_brand_id_weight[brand_id] = 0
             if uid not in sum_user_brand_id_action_num:
                 sum_user_brand_id_action_num.setdefault(uid, {brand_id:0})
-                sum_user_brand_id_action_num[uid][brand_id] = 1 * action_weight[action] * cal_time_decay(datetime.datetime.strptime(order_ctime, "%Y-%m-%d"))
+                #time_decay 对品牌的效果并不好，品牌本身受时间衰减影响较弱，设置a为0.03，半衰期在三个月左右，目前策略不设置半衰期，直接置为1.0，对于不同品牌的季节偏好，采用长中短期用户画像分别计算的策略来计算品牌偏好
+                time_decay = cal_time_decay(0.03, datetime.datetime.strptime(order_ctime, "%Y-%m-%d"))
+                time_decay = 1.0
+                sum_user_brand_id_action_num[uid][brand_id] = 1 * action_weight[action] * time_decay 
             else:
                 if brand_id not in sum_user_brand_id_action_num[uid]:
                     sum_user_brand_id_action_num[uid].setdefault(brand_id, 0)
-                sum_user_brand_id_action_num[uid][brand_id] += action_weight[action] * cal_time_decay(datetime.datetime.strptime(order_ctime, "%Y-%m-%d"))
+                time_decay = cal_time_decay(0.03, datetime.datetime.strptime(order_ctime, "%Y-%m-%d"))
+                time_decay = 1.0
+                sum_user_brand_id_action_num[uid][brand_id] += action_weight[action] * time_decay        
             if sum_user_brand_id_action_num[uid][brand_id] > max_brand_id_weight[brand_id] : 
-                max_brand_id_weight[brand_id] = sum_user_brand_id_action_num[uid][brand_id]
+                    max_brand_id_weight[brand_id] = sum_user_brand_id_action_num[uid][brand_id]
     #归一化
     for uid, brand_dict in sum_user_brand_id_action_num.items():
         for brand_id, origin_score in brand_dict.items():
@@ -96,7 +103,7 @@ def cal_user_brand_preference():
 
 
 def main():
-    #get_goods_brand_info()
+    get_goods_brand_info()
     cal_user_brand_preference()
     return
 

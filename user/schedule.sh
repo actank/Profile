@@ -3,13 +3,13 @@
 
 if [ -n $1 ]
 then
-    if [[ $1 == "dump" ]]
+    if [[ $1 == "short_dump" ]]
     then
         echo $1
-    elif [[ $1 == "category_preference" ]]
+    elif [[ $1 == "short_category_preference" ]]
     then
         echo $1
-    elif [[ $1 == "brand_preference" ]]
+    elif [[ $1 == "short_brand_preference" ]]
     then
         echo $1
     elif [[ $1 == "help" || $# != 1 ]]

@@ -20,7 +20,10 @@ def get_goods_lv2_category_info():
     os.system(cmd)
     user_order_goodsid_list = []
     with open("data/user_order_goodsid.txt", "r") as f:
-        user_order_goodsid_list = pickle.load(f)
+        for line in f:
+            uid, order_id, goods_id, order_ctime = line.strip().split("\t")
+            user_order_goodsid_list.append({'uid' : uid, 'goods_id' : goods_id, 'order_id' : order_id, 'order_ctime' : order_ctime})
+
     #扩展三级类目信息
     host, port, user, pwd, db = MySQLConfigApi.get_param_from_ini_file('higo_goods', 0, False)
     db = torndb.Connection(host + ':' + port, db, user, pwd)
@@ -72,11 +75,16 @@ def cal_user_ncategory_preference():
                 max_n_category_id_weight[n_category_id] = 0
             if uid not in sum_user_n_category_id_action_num:
                 sum_user_n_category_id_action_num.setdefault(uid, {n_category_id:0})
-                sum_user_n_category_id_action_num[uid][n_category_id] = 1 * action_weight[action] * cal_time_decay(datetime.datetime.strptime(order_ctime, "%Y-%m-%d"))
+                #本身取三个月订单数据就是短期画像，时间衰减较弱
+                #设置时间衰减为0.005，半衰期三个月内影响都不明显，对最近的加权较多，为了提高应季新品的加权效果
+                time_decay = cal_time_decay(0.003 , datetime.datetime.strptime(order_ctime, "%Y-%m-%d"))
+                sum_user_n_category_id_action_num[uid][n_category_id] = 1 * action_weight[action] * time_decay
             else:
                 if n_category_id not in sum_user_n_category_id_action_num[uid]:
                     sum_user_n_category_id_action_num[uid].setdefault(n_category_id, 0)
-                sum_user_n_category_id_action_num[uid][n_category_id] += action_weight[action] * cal_time_decay(datetime.datetime.strptime(order_ctime, "%Y-%m-%d"))
+                #设置时间衰减为0.005，半衰期在三个月左右
+                time_decay = cal_time_decay(0.003, datetime.datetime.strptime(order_ctime, "%Y-%m-%d"))
+                sum_user_n_category_id_action_num[uid][n_category_id] += action_weight[action] * time_decay
             if sum_user_n_category_id_action_num[uid][n_category_id] > max_n_category_id_weight[n_category_id] : 
                 max_n_category_id_weight[n_category_id] = sum_user_n_category_id_action_num[uid][n_category_id]
     #归一化
@@ -93,7 +101,7 @@ def load_to_redis():
     return
 def main():
     
-    #get_goods_lv2_category_info()
+    get_goods_lv2_category_info()
     #gc.enable()
     #gc.collect()
     #gc.disable()
