@@ -15,6 +15,7 @@ def dump_user_id():
     os.system(cmd)
     #取最近三个月下过订单的用户作为活跃用户
     today = datetime.datetime.today()
+    #暂时用10天下过订单的用户做小规模测试
     date_begin = (today - datetime.timedelta(days=10)).strftime('%Y-%m-%d')
     date_end = today.strftime('%Y-%m-%d')
 
@@ -42,11 +43,13 @@ def dump_user_click_goods_id():
 def dump_user_add_cart_goods_id():
     return
 
+# 获取中期偏好宝贝goods_id
 def dump_user_order_goods_id():
+    #获取用户三个月内下订单的宝贝，计算中期偏好
     cmd = "rm -rf ./data/user_order_goodsid.txt"
     os.system(cmd)
     today = datetime.datetime.today()
-    date_begin = (today - datetime.timedelta(days=10)).strftime('%Y-%m-%d')
+    date_begin = (today - datetime.timedelta(days=90)).strftime('%Y-%m-%d')
     date_end = today.strftime('%Y-%m-%d')
 
     host, port, user, pwd, db = MySQLConfigApi.get_param_from_ini_file('higo_order', 0, False)
@@ -60,9 +63,11 @@ def dump_user_order_goods_id():
         ret = []
         with open('data/user_order_goodsid.txt', 'w') as f:
             for uid in user_id:
-                sql = "select order_id, goods_id, order_ctime from (select o.order_id as order_id ,goods_id as goods_id, order_ctime from t_pandora_order o left join t_pandora_order_item i on o.order_id = i.order_id where o.buyer_id=%s) t" % uid
+                sql = "select order_id, goods_id, order_ctime from (select o.order_id as order_id ,goods_id as goods_id, order_ctime from t_pandora_order o left join t_pandora_order_item i on o.order_id = i.order_id where o.buyer_id=%s and o.order_ctime >= '%s' and o.order_ctime <= '%s') t" % (uid, date_begin, date_end)
                 res = db_order.query(sql)
                 for line in res:
+                    if line['goods_id'] == None:
+                        continue
                     line['uid'] = uid
                     line['order_ctime'] = line['order_ctime'].strftime('%Y-%m-%d')
                     ret.append(line)
@@ -82,7 +87,7 @@ def dump_user_favorite_goods_id():
 
 
 def main():
-    dump_user_id()
+    #dump_user_id()
     dump_user_order_goods_id()
         
 
