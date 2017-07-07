@@ -11,7 +11,7 @@ import logging
 import traceback
 import gc
 import os
-from utils import *
+from common.utils import *
 
 
 def get_goods_lv2_category_info():
@@ -49,33 +49,50 @@ def get_goods_lv2_category_info():
 #计算三级类目偏好
 #preference_weight = action_weight * time_weight * goods_weight
 def cal_user_ncategory_preference():
-    action_weitht = {
-    'click_weight' : 1,
-    'like_action_weight': 2,
-    'cart_action_weight' : 5,
-    'order_action_weight' : 10 
+    cmd = "rm -rf data/user_n_category_preference.txt"
+    os.system(cmd)
+    action_weight = {
+    'click' : 1,
+    'like': 2,
+    'cart' : 5,
+    'order' : 10 
     }
 
     uid_n_category_id = {}
     n_category_id_2_name_map = {}
     sum_user_n_category_id_action_num = {}
-    f1 = open("data/user_n_categoy_preference.txt", "w")
+    max_n_category_id_weight = {}
+    f1 = open("data/user_n_category_preference.txt", "w")
     with open("data/user_n_category_info.txt") as f:
         for line in f:
             uid, goods_id, n_category_id, n_category_name, action,order_ctime = line.strip().split("\t")
             if n_category_id not in n_category_id_2_name_map:
                 n_category_id_2_name_map[n_category_id] = n_category_name
+            if n_category_id not in  max_n_category_id_weight:
+                max_n_category_id_weight[n_category_id] = 0
             if uid not in sum_user_n_category_id_action_num:
-                sum_user_n_category_id_action_num[uid][n_category_id] = 1 * action_weight[action] * cal_time_decay(datetime.datetime.strptime(order_ctime))
-                
+                sum_user_n_category_id_action_num.setdefault(uid, {n_category_id:0})
+                sum_user_n_category_id_action_num[uid][n_category_id] = 1 * action_weight[action] * cal_time_decay(datetime.datetime.strptime(order_ctime, "%Y-%m-%d"))
+            else:
+                if n_category_id not in sum_user_n_category_id_action_num[uid]:
+                    sum_user_n_category_id_action_num[uid].setdefault(n_category_id, 0)
+                sum_user_n_category_id_action_num[uid][n_category_id] += action_weight[action] * cal_time_decay(datetime.datetime.strptime(order_ctime, "%Y-%m-%d"))
+            if sum_user_n_category_id_action_num[uid][n_category_id] > max_n_category_id_weight[n_category_id] : 
+                max_n_category_id_weight[n_category_id] = sum_user_n_category_id_action_num[uid][n_category_id]
+    #归一化
+    for uid, ncategory_dict in sum_user_n_category_id_action_num.items():
+        for ncategory_id, origin_score in ncategory_dict.items():
+            weight = ("%.2f" % (0.01 + (origin_score - 0) / max_n_category_id_weight[ncategory_id]))
+            f1.write("%s\t%s\t%s\n" % (uid, n_category_id_2_name_map[ncategory_id], weight))
+ 
     f1.close()
 def main():
     
-    get_goods_lv2_category_info()
-    gc.enable()
-    gc.collect()
-    gc.disable()
-    #cal_user_ncategory_preference()
+    #get_goods_lv2_category_info()
+    #gc.enable()
+    #gc.collect()
+    #gc.disable()
+    cal_user_ncategory_preference()
     return
 
 if __name__ == "__main__":
