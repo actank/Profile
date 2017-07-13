@@ -14,14 +14,14 @@ import os
 from common.utils import *
 
 
-def get_goods_lv2_category_info():
+def get_goods_lv3_category_info():
     #获取用户下过单的宝贝id
     cmd = "rm -rf data/user_n_category_info.txt"
     os.system(cmd)
     user_order_goodsid_list = []
     with open("data/user_order_goodsid.txt", "r") as f:
         for line in f:
-            uid, order_id, goods_id, order_ctime = line.strip().split("\t")
+            uid, order_id, goods_id, order_ctime, action = line.strip().split("\t")
             user_order_goodsid_list.append({'uid' : uid, 'goods_id' : goods_id, 'order_id' : order_id, 'order_ctime' : order_ctime})
 
     #扩展三级类目信息
@@ -51,8 +51,8 @@ def get_goods_lv2_category_info():
 
 #计算三级类目偏好
 #preference_weight = action_weight * time_weight * goods_weight
-def cal_user_ncategory_preference():
-    cmd = "rm -rf data/user_n_category_preference.txt"
+def cal_user_lv3_preference(periods):
+    cmd = "rm -rf data/user_" + periods + "_lv3_preference.txt"
     os.system(cmd)
     action_weight = {
     'click' : 1,
@@ -65,7 +65,7 @@ def cal_user_ncategory_preference():
     n_category_id_2_name_map = {}
     sum_user_n_category_id_action_num = {}
     max_n_category_id_weight = {}
-    f1 = open("data/user_n_category_preference.txt", "w")
+    f1 = open("data/user_" + periods + "_lv3_preference.txt", "w")
     with open("data/user_n_category_info.txt") as f:
         for line in f:
             uid, goods_id, n_category_id, n_category_name, action,order_ctime = line.strip().split("\t")
@@ -99,13 +99,16 @@ def load_to_hive():
     return
 def load_to_redis():
     return
+
+def cal_user_lv2_preference():
+    return
 def main():
     
-    get_goods_lv2_category_info()
+    get_goods_lv3_category_info()
     #gc.enable()
     #gc.collect()
     #gc.disable()
-    cal_user_ncategory_preference()
+    cal_user_lv3_preference()
     load_to_hive()
     return
 

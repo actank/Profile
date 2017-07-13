@@ -10,14 +10,13 @@ import datetime
 import pickle
 import logging
 import traceback
+import argparse
 
 def dump_user_id():
     cmd = "rm -rf data/user_id.txt"
     os.system(cmd)
     #取最近三个月下过订单的用户作为活跃用户
     today = datetime.datetime.today()
-    #暂时用10天下过订单的用户做小规模测试
-    #中期用户画像为90天
     date_begin = (today - datetime.timedelta(days=90)).strftime('%Y-%m-%d')
     date_end = today.strftime('%Y-%m-%d')
 
@@ -46,12 +45,21 @@ def dump_user_add_cart_goods_id():
     return
 
 # 获取中期偏好宝贝goods_id
-def dump_user_order_goods_id():
-    #获取用户三个月内下订单的宝贝，计算中期偏好
-    cmd = "rm -rf ./data/user_order_goodsid.txt"
+def dump_user_order_goods_id(periods):
+
+    if periods == "long" :
+        days = 360
+    elif periods == "middle" :
+        days = 90
+    elif periods == "short":
+        days = 30
+    else:
+        return -1
+    #获取用户下订单的宝贝，计算长中短期偏好
+    cmd = "rm -rf ./data/user_order_goodsid_" + periods + ".txt"
     os.system(cmd)
     today = datetime.datetime.today()
-    date_begin = (today - datetime.timedelta(days=90)).strftime('%Y-%m-%d')
+    date_begin = (today - datetime.timedelta(days=days)).strftime('%Y-%m-%d')
     date_end = today.strftime('%Y-%m-%d')
 
     host, port, user, pwd, db = MySQLConfigApi.get_param_from_ini_file('higo_order', 0, False)
@@ -63,9 +71,9 @@ def dump_user_order_goods_id():
             user_id.append(line)
     try:
         ret = []
-        with open('data/user_order_goodsid.txt', 'w') as f:
+        with open('data/user_action_goodsid.txt', 'w') as f:
             for uid in user_id:
-                sql = "select order_id, goods_id, order_ctime from (select o.order_id as order_id ,goods_id as goods_id, order_ctime from t_pandora_order o left join t_pandora_order_item i on o.order_id = i.order_id where o.buyer_id=%s and o.order_ctime >= '%s' and o.order_ctime <= '%s') t" % (uid, date_begin, date_end)
+                sql = "select order_id, goods_id, order_ctime from (select o.order_id as order_id ,goods_id as goods_id, order_ctime from t_pandora_order o left join t_pandora_order_item i on o.order_id = i.order_id where o.buyer_id=%s and o.order_ctime >= '%s' and o.order_ctime <= '%s' and o.order_status=2) t" % (uid, date_begin, date_end)
                 res = db_order.query(sql)
                 for line in res:
                     if line['goods_id'] == None:
@@ -73,7 +81,7 @@ def dump_user_order_goods_id():
                     line['uid'] = uid
                     line['order_ctime'] = line['order_ctime'].strftime('%Y-%m-%d')
                     ret.append(line)
-                    f.write("%s\t%s\t%s\t%s\n" % (uid, line['order_id'], line['goods_id'], line['order_ctime']))
+                    f.write("%s\t%s\t%s\t%s\torder\n" % (uid, line['order_id'], line['goods_id'], line['order_ctime']))
                     
     except Exception,e:
         print e
@@ -82,16 +90,27 @@ def dump_user_order_goods_id():
         db_order.close()
     return
 
-def dump_user_pay_goods_id():
+def dump_user_cart_goods_id(periods):
     return
 
-def dump_user_favorite_goods_id():
+def dump_user_favorite_goods_id(periods):
     return
 
 
 def main():
-    dump_user_id()
-    dump_user_order_goods_id()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-p','--periods', help="画像类型，长中短 long|middle|short")
+    args = parser.parse_args()  
+    if args.periods == None:
+        print "解析失败"
+        return
+    if args.periods not in ['long', 'middle', 'short']:
+        print "periods解析失败"
+        return
+    #dump_user_id()
+    dump_user_order_goods_id(args.periods)
+    dump_user_cart_goods_id(args.periods)
+    dump_user_favorite_goods_id(args.periods)
     return
         
 

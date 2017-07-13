@@ -12,15 +12,16 @@ import traceback
 import gc
 import os
 from common.utils import *
+import argparse 
 
 def get_goods_brand_info():
     #获取用户下过单的宝贝id
     cmd = "rm -rf data/user_brand_info.txt"
     os.system(cmd)
     user_order_goodsid_list = []
-    with open("data/user_order_goodsid.txt", "r") as f:
+    with open("data/user_action_goodsid.txt", "r") as f:
         for line in f:
-            uid, order_id, goods_id, order_ctime = line.strip().split("\t")
+            uid, order_id, goods_id, order_ctime, action= line.strip().split("\t")
             user_order_goodsid_list.append({'uid' : uid, 'goods_id' : goods_id, 'order_id' : order_id, 'order_ctime' : order_ctime})
     #扩展品牌信息
     host, port, user, pwd, db = MySQLConfigApi.get_param_from_ini_file('higo_goods', 0, False)
@@ -52,8 +53,8 @@ def get_goods_brand_info():
 
 #计算品牌偏好
 #preference_weight = action_weight * time_weight * goods_weight
-def cal_user_brand_preference():
-    cmd = "rm -rf data/user_brand_preference.txt"
+def cal_user_brand_preference(periods):
+    cmd = "rm -rf data/user_" + periods + "_brand_preference.txt"
     os.system(cmd)
     action_weight = {
     'click' : 1,
@@ -66,7 +67,7 @@ def cal_user_brand_preference():
     brand_id_2_name_map = {}
     sum_user_brand_id_action_num = {}
     max_brand_id_weight = {}
-    f1 = open("data/user_brand_preference.txt", "w")
+    f1 = open("data/user_" + periods + "_brand_preference.txt", "w")
     with open("data/user_brand_info.txt") as f:
         for line in f:
             if len(line.split("{\c}")) != 6:
@@ -103,8 +104,18 @@ def cal_user_brand_preference():
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-p','--periods', help="品牌偏好属性类型，长中短 long|middle|short")
+    args = parser.parse_args()  
+    if args.periods == None:
+        print "解析失败"
+        return
+    if args.periods not in ['long', 'middle', 'short']:
+        print "periods解析失败"
+        return
+
     get_goods_brand_info()
-    cal_user_brand_preference()
+    cal_user_brand_preference(args.periods)
     return
 
 if __name__ == "__main__":
