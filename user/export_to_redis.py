@@ -1,8 +1,18 @@
 #coding:utf-8
 import sys
+reload(sys)
+sys.path.append("..")
+sys.setdefaultencoding( "utf-8" )
+import os
 import redis
 import json
 import time
+import argparse
+from common.utils import *
+
+logger = logging.getLogger("info") 
+
+
 
 
 version_key = 'user_profile_version'
@@ -22,8 +32,8 @@ db = 0
 
 user_profile = {}
 
-def load_user_brand_preference():
-    with open ("data/user_brand_preference.txt") as f:
+def load_user_brand_preference(periods):
+    with open ("data/user_" + periods + "_brand_preference.txt") as f:
         key = ""
         key_bak = ""
         weight_list = []
@@ -34,7 +44,7 @@ def load_user_brand_preference():
                 if key_bak != "":
                     if key_bak not in user_profile:
                         user_profile[key_bak] = {}
-                    user_profile[key_bak].setdefault("brand_preference", weight_list)
+                    user_profile[key_bak].setdefault(periods + "_brand_preference", weight_list)
                     weight_list = []
                 key_bak = key
             #品牌有持久性，weight大于0.05即可认为有兴趣
@@ -43,8 +53,8 @@ def load_user_brand_preference():
             weight_list.append({"brand_id" : brand_id, "brand_name" : brand_name, "weight" : weight})
     return
 
-def load_user_n_category_preference():
-    with open ("data/user_n_category_preference.txt") as f:
+def load_user_lv3_preference(periods):
+    with open ("data/user_" + periods + "_lv3_preference.txt") as f:
         key = ""
         key_bak = ""
         weight_list = []
@@ -55,13 +65,13 @@ def load_user_n_category_preference():
                 if key_bak != "":
                     if key_bak not in user_profile:
                         user_profile[key_bak] = {}
-                    user_profile[key_bak]["n_category_preference"] = weight_list
+                    user_profile[key_bak][periods + "_lv3_preference"] = weight_list
                     weight_list = []
                 key_bak = key
+            #weight小于0.2直接过滤
             if float(weight) < 0.2:
                 continue
-            weight_list.append({"n_category_id" : n_category_id, "n_category_name" : n_category_name, "weight" : weight})
-
+            weight_list.append({"lv3_category_id" : n_category_id, "lv3_category_name" : n_category_name, "weight" : weight})
     return
 
 def write_to_redis():
@@ -69,15 +79,27 @@ def write_to_redis():
     key = dict_key_pre + version
     for uid, profile in user_profile.items():
         json_profile = json.dumps(profile)
+        logger.info("user_id:%s, profile:%s" % (uid, json_profile))
         conn.hset(key, uid, profile)
         print uid
         time.sleep(0.01)
     return
 
 def main():
-    load_user_brand_preference()
-    load_user_n_category_preference()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-p','--periods', help="品牌偏好属性类型，长中短 long|middle|short")
+    args = parser.parse_args()  
+    if args.periods == None:
+        print "解析失败"
+        return
+    if args.periods not in ['long', 'middle', 'short']:
+        print "periods解析失败"
+        return
+
+    load_user_brand_preference(args.periods)
+    load_user_lv3_preference(args.periods)
     write_to_redis()
+    return
 
 if __name__ == "__main__":
     main()

@@ -7,15 +7,12 @@ import torndb
 from common.mysql_conf_api import MySQLConfigApi
 import datetime
 import pickle
-import logging
-import logging.config
 import traceback
 import gc
 import os
 from common.utils import *
 import argparse
-logging.config.fileconfig("../common/log.conf")
-logger = logging.getlogger("info") 
+logger = logging.getLogger("info") 
 
 
 def get_goods_lv3_category_info():

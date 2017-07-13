@@ -7,12 +7,13 @@ import torndb
 from common.mysql_conf_api import MySQLConfigApi
 import datetime
 import pickle
-import logging
 import traceback
 import gc
 import os
 from common.utils import *
 import argparse 
+logger = logging.getLogger("info") 
+
 
 def get_goods_brand_info():
     #获取用户下过单的宝贝id

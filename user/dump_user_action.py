@@ -8,9 +8,11 @@ import torndb
 from common.mysql_conf_api import MySQLConfigApi
 import datetime
 import pickle
-import logging
 import traceback
 import argparse
+
+logger = logging.getlogger("info") 
+
 
 def dump_user_id():
     cmd = "rm -rf data/user_id.txt"
@@ -55,6 +57,8 @@ def dump_user_order_goods_id(periods):
         days = 30
     else:
         return -1
+
+    logger.info("begin dump user " + periods + " action info")
     #获取用户下订单的宝贝，计算长中短期偏好
     cmd = "rm -rf ./data/user_order_goodsid_" + periods + ".txt"
     os.system(cmd)
@@ -88,6 +92,8 @@ def dump_user_order_goods_id(periods):
         print traceback.print_exc()
     finally:
         db_order.close()
+
+    logger.info("dump user action info success")
     return
 
 def dump_user_cart_goods_id(periods):
