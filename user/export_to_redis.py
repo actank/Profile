@@ -2,7 +2,7 @@
 import sys
 reload(sys)
 sys.path.append("..")
-sys.setdefaultencoding( "utf-8" )
+sys.setdefaultencoding("utf-8")
 import os
 import redis
 import json
@@ -81,7 +81,6 @@ def write_to_redis():
         json_profile = json.dumps(profile)
         logger.info("user_id:%s, profile:%s" % (uid, json_profile))
         conn.hset(key, uid, profile)
-        print uid
         time.sleep(0.01)
     return
 
