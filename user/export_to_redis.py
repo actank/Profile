@@ -74,6 +74,18 @@ def load_user_lv3_preference(periods):
             weight_list.append({"lv3_category_id" : n_category_id, "lv3_category_name" : n_category_name, "weight" : weight})
     return
 
+def load_user_static_attr():
+    with open("data/user_static_attr.txt", "r") as f:
+        for line in f:
+            line = line.strip().encode(encoding='utf-8')
+            user_attr = json.loads(line, encoding='utf-8')
+            user_id = user_attr['uid'].encode('utf-8')
+            sex = user_attr['sex'].encode('utf-8')
+            if user_profile.has_key(user_id):
+                user_profile[user_id]['static_attr'] = {'user_id' : user_id, 'sex' : sex}
+    return
+            
+
 def write_to_redis():
     conn = redis.Redis(host, port, db)
     key = dict_key_pre + version
@@ -97,6 +109,7 @@ def main():
 
     load_user_brand_preference(args.periods)
     load_user_lv3_preference(args.periods)
+    load_user_static_attr()
     write_to_redis()
     return
 
