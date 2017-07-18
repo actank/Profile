@@ -4,13 +4,17 @@
 if [ -n $1 ]
 then
     if [[ $1 == "long" ]]
+    then
         python dump_user_action.py -p $1
         python brand_preference.py -p $1
-    then
+        python category_preference.py -p $1
+        python export_to_redis.py -p $1
     elif [[ $1 == "middle" ]]
     then
+        echo $1 
     elif [[ $1 == "short" ]]
     then
+        echo $1
     fi
 #
 #    if [[ $1 == "dump" ]]

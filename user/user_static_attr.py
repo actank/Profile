@@ -35,17 +35,16 @@ def main():
                 if len(id_card_num) == 15:
                     check_num = id_card_num[len(id_card_num) - 1]
                     if check_num.isdigit():
-                        if int(check_num) % 2 == 0:
+                        if int(check_num) % 2 == 1:
                             sex = "male"
                     else:
                         sex = "female"
                 elif len(id_card_num) == 18:
                     check_num = id_card_num[len(id_card_num) - 2]
                     if check_num.isdigit():
-                        if int(check_num) % 2 == 0:
+                        if int(check_num) % 2 == 1:
                             sex = "male"
                 else:
-                    print id_card_num
                     continue
                 user_static_attr_list.append({"uid" : user_id, "sex" : sex})
 

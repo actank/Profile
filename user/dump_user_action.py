@@ -10,8 +10,9 @@ import datetime
 import pickle
 import traceback
 import argparse
+from common.utils import *
 
-logger = logging.getlogger("info") 
+logger = logging.getLogger("info") 
 
 
 def dump_user_id():
@@ -50,7 +51,7 @@ def dump_user_add_cart_goods_id():
 def dump_user_order_goods_id(periods):
 
     if periods == "long" :
-        days = 360
+        days = 210
     elif periods == "middle" :
         days = 90
     elif periods == "short":

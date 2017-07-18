@@ -83,6 +83,9 @@ def load_user_static_attr():
             sex = user_attr['sex'].encode('utf-8')
             if user_profile.has_key(user_id):
                 user_profile[user_id]['static_attr'] = {'user_id' : user_id, 'sex' : sex}
+        for uid in user_profile:
+            if not user_profile[uid].has_key('static_attr'):
+                user_profile[uid]['static_attr'] = {'user_id' : user_id, 'sex' : ''}
     return
             
 
