@@ -8,6 +8,7 @@ from common.mysql_conf_api import MySQLConfigApi
 import datetime
 import pickle
 import traceback
+import math
 import gc
 import os
 from common.utils import *
@@ -22,8 +23,8 @@ def get_goods_brand_info():
     user_order_goodsid_list = []
     with open("data/user_action_goodsid.txt", "r") as f:
         for line in f:
-            uid, order_id, goods_id, order_ctime, action= line.strip().split("\t")
-            user_order_goodsid_list.append({'uid' : uid, 'goods_id' : goods_id, 'order_id' : order_id, 'order_ctime' : order_ctime})
+            uid, goods_id, order_ctime, action= line.strip().split("\t")
+            user_order_goodsid_list.append({'uid' : uid, 'goods_id' : goods_id, 'order_ctime' : order_ctime})
     #扩展品牌信息
     host, port, user, pwd, db = MySQLConfigApi.get_param_from_ini_file('higo_goods', 0, False)
     db = torndb.Connection(host + ':' + port, db, user, pwd)
@@ -103,6 +104,65 @@ def cal_user_brand_preference(periods):
     f1.close()
     return
 
+def cal_user_brand_preference_new(periods):
+    #cmd = "rm -rf data/user_" + periods + "_brand_preference.txt"
+    #os.system(cmd)
+    action_weight = {
+    'click' : 1,
+    'like': 2,
+    'cart' : 5,
+    'order' : 10 
+    }
+
+    #tf
+    uid_brand_id_map = {}
+    brand_id_2_name_map = {}
+    #idf
+    brand_id_uid_map = {}
+    idf_map = {}
+    weight_map = {}
+    uid_sum = 0
+    f1 = open("data/user_" + periods + "_brand_preference.txt", "w")
+    with open("data/user_brand_info.txt") as f:
+        for line in f:
+            if len(line.split("{\c}")) != 6:
+                continue
+            uid, goods_id, brand_id, brand_name, action,order_ctime = line.strip().split("{\c}")
+            if uid not in uid_brand_id_map:
+                uid_brand_id_map.setdefault(uid, {})
+            if brand_id not in uid_brand_id_map[uid]:
+                uid_brand_id_map[uid][brand_id] = 1
+            else:
+                uid_brand_id_map[uid][brand_id] += 1
+            if brand_id not in brand_id_uid_map:
+                brand_id_uid_map[brand_id] = [uid]
+            elif uid not in brand_id_uid_map[brand_id]:
+                brand_id_uid_map[brand_id].append(uid)
+        uid_sum = len(uid_brand_id_map.keys())
+        for k, l in brand_id_uid_map.items():
+            idf_map[k] = math.log(uid_sum / (len(l) + 1), 10)
+
+        for uid in uid_brand_id_map.keys():
+            weight_map[uid] = {}
+            #euclid norm
+            norm = 0.0
+            for brand_id in uid_brand_id_map[uid].keys():
+
+                weight_map[uid][brand_id] = uid_brand_id_map[uid][brand_id] * idf_map[brand_id]
+                norm += weight_map[uid][brand_id]**2
+            norm = math.sqrt(norm)
+            for brand_id in uid_brand_id_map[uid].keys():
+                weight_map[uid][brand_id] = weight_map[uid][brand_id] / norm
+            print weight_map
+            sys.exit()
+
+                
+
+
+    f1.close()
+    return
+
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -115,8 +175,8 @@ def main():
         print "periods解析失败"
         return
 
-    get_goods_brand_info()
-    cal_user_brand_preference(args.periods)
+    #get_goods_brand_info()
+    cal_user_brand_preference_new(args.periods)
     return
 
 if __name__ == "__main__":

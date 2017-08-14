@@ -14,6 +14,21 @@ from common.utils import *
 
 logger = logging.getLogger("info") 
 
+def get_date_begin_and_date_end(periods):
+    if periods == "long" :
+        days = 210
+    elif periods == "middle" :
+        days = 90
+    elif periods == "short":
+        days = 30
+    else:
+        return -1
+    today = datetime.datetime.today()
+    date_begin = (today - datetime.timedelta(days=90)).strftime('%Y-%m-%d')
+    date_end = today.strftime('%Y-%m-%d')
+
+    return (date_begin, date_end)
+
 
 def dump_user_id():
     cmd = "rm -rf data/user_id.txt"
@@ -44,10 +59,54 @@ def dump_user_id():
 def dump_user_click_goods_id():
     return
 
-def dump_user_add_cart_goods_id():
+def dump_user_cart_goods_id(periods):
+    today = datetime.datetime.today()
+    if periods == "long" :
+        days = 210
+    elif periods == "middle" :
+        days = 90
+    elif periods == "short":
+        days = 30
+    else:
+        return -1
+
+    os.system("rm -rf shop_cart")
+    hive_cmd = "hadoop fs -getmerge "
+    for i in range(days):
+        date_begin = (today - datetime.timedelta(days=i)).strftime('%Y-%m-%d')
+        hive_cmd += "/user/hadoop/user_tag/common/shop_cart/cart_%s " % (date_begin)
+    hive_cmd += "shop_cart"
+    os.system(hive_cmd)
+
+    user_id = []
+    with open('data/user_id.txt', 'r') as f:
+        for line in f.readlines():
+            line = line.strip()
+            user_id.append(line)
+    try:
+        ret = []
+        fs = open('shop_cart', "r")
+        with open('data/user_action_goodsid.txt', 'a+') as f:
+            for line in fs:
+                line = line.strip().split("\t")
+                uid = line[1]
+                if uid not in user_id:
+                    continue
+                goods_id = line[2]
+                ctime = float(line[3])
+                #ctime = ctime[0:len(ctime) - 2]
+                ctime = datetime.datetime.fromtimestamp(ctime).strftime("%Y-%m-%d") 
+                f.write("%s\t%s\t%s\tcart\n" % (uid, goods_id, ctime))
+    except Exception,e:
+        print e
+        print traceback.print_exc()
+    finally:
+        fs.close()
+
     return
 
-# 获取中期偏好宝贝goods_id
+
+# 获取长中短期偏好宝贝goods_id
 def dump_user_order_goods_id(periods):
 
     if periods == "long" :
@@ -86,7 +145,7 @@ def dump_user_order_goods_id(periods):
                     line['uid'] = uid
                     line['order_ctime'] = line['order_ctime'].strftime('%Y-%m-%d')
                     ret.append(line)
-                    f.write("%s\t%s\t%s\t%s\torder\n" % (uid, line['order_id'], line['goods_id'], line['order_ctime']))
+                    f.write("%s\t%s\t%s\torder\n" % (uid, line['goods_id'], line['order_ctime']))
                     
     except Exception,e:
         print e
@@ -95,9 +154,6 @@ def dump_user_order_goods_id(periods):
         db_order.close()
 
     logger.info("dump user action info success")
-    return
-
-def dump_user_cart_goods_id(periods):
     return
 
 def dump_user_favorite_goods_id(periods):
@@ -115,9 +171,9 @@ def main():
         print "periods解析失败"
         return
     #dump_user_id()
-    dump_user_order_goods_id(args.periods)
+    #dump_user_order_goods_id(args.periods)
     dump_user_cart_goods_id(args.periods)
-    dump_user_favorite_goods_id(args.periods)
+    #dump_user_favorite_goods_id(args.periods)
     return
         
 
