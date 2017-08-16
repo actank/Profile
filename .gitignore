@@ -2,3 +2,7 @@
 *.log
 *.pyc
 user/logs/
+shop_cart
+user/model/
+*.buffer
+mz*

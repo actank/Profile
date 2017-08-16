@@ -6,7 +6,7 @@ import gc
 
 
 
-def transform():
+def transform_train_data():
     uid_index = []
     brand_index = []
 
@@ -53,6 +53,29 @@ def transform():
     f1.close()
     return
 
+def prepare_predict_data():
+    gc.enable()
+    gc.collect()
+    gc.disable()
+    uid_index = {}
+    brand_index = {}
+    with open("./data/uid_index.txt", "r") as f:
+        for line in f:
+            line = line.strip().split(" ")
+            uid_index[line[0]] = line[1]
+
+    with open("./data/brand_index.txt", "r") as f:
+        for line in f:
+            line = line.strip().split(" ")
+            brand_index[line[0]] = line[1]
+    with open("data/svd_predict.txt", "w") as f:
+        for uid in uid_index.keys():
+            for brand_id in brand_index.keys():
+                f.write("%s 0 1 1 %s:1 %s:1\n" % (0.0, uid_index[uid], brand_index[brand_id]))
+
+    return
+
 
 if __name__ == "__main__":
-    transform()
+    transform_train_data()
+    #prepare_predict_data()
