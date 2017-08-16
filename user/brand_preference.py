@@ -128,6 +128,8 @@ def cal_user_brand_preference_new(periods):
             if len(line.split("{\c}")) != 6:
                 continue
             uid, goods_id, brand_id, brand_name, action,order_ctime = line.strip().split("{\c}")
+            if brand_id not in brand_id_2_name_map:
+                brand_id_2_name_map[brand_id] = brand_name
             if uid not in uid_brand_id_map:
                 uid_brand_id_map.setdefault(uid, {})
             if brand_id not in uid_brand_id_map[uid]:
@@ -153,11 +155,7 @@ def cal_user_brand_preference_new(periods):
             norm = math.sqrt(norm)
             for brand_id in uid_brand_id_map[uid].keys():
                 weight_map[uid][brand_id] = weight_map[uid][brand_id] / norm
-            print weight_map
-            sys.exit()
-
-                
-
+                f1.write("%s{\c}%s{\c}%s{\c}%s\n" % (uid, brand_id, brand_id_2_name_map[brand_id], weight_map[uid][brand_id]))
 
     f1.close()
     return
