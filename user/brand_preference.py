@@ -21,10 +21,19 @@ def get_goods_brand_info():
     cmd = "rm -rf data/user_brand_info.txt"
     os.system(cmd)
     user_order_goodsid_list = []
+    user_cart_goodsid_list = []
+    user_see_goodsid_list = []
     with open("data/user_action_goodsid.txt", "r") as f:
         for line in f:
-            uid, goods_id, order_ctime, action= line.strip().split("\t")
-            user_order_goodsid_list.append({'uid' : uid, 'goods_id' : goods_id, 'order_ctime' : order_ctime})
+            if len(line.split("\t")) != 4:
+                continue
+            uid, goods_id, ctime, action= line.strip().split("\t")
+            if action == "order":
+                user_order_goodsid_list.append({'uid' : uid, 'goods_id' : goods_id, 'order_ctime' : ctime})
+            elif action == "cart":
+                user_cart_goodsid_list.append({'uid' : uid, 'goods_id' : goods_id, 'cart_ctime' : ctime})
+            elif action == "see":
+                user_see_goodsid_list.append({'uid' : uid, 'goods_id' : goods_id, 'see_ctime' : ctime})
     #扩展品牌信息
     host, port, user, pwd, db = MySQLConfigApi.get_param_from_ini_file('higo_goods', 0, False)
     db = torndb.Connection(host + ':' + port, db, user, pwd)
@@ -45,6 +54,38 @@ def get_goods_brand_info():
                 continue
             #action = order
             f.write("%s{\c}%s{\c}%s{\c}%s{\c}order{\c}%s\n" % (goods['uid'], str(goods['goods_id']), str(goods['brand_id']), goods['brand_name'], goods['order_ctime']))
+        for goods in user_cart_goodsid_list:
+            if goods['goods_id'] == None:
+                continue
+            sql = "select brand_id, brand_name from t_pandora_goods where goods_id=%s" % (goods['goods_id'])
+            res = db.query(sql)
+            if len(res) == 0:
+                continue
+            goods['brand_id'] = res[0]['brand_id']
+            goods['brand_name'] = res[0]['brand_name']
+            if goods['brand_id'] == None:
+                continue
+            if goods['brand_name'] == None:
+                continue
+            #action = cart
+            f.write("%s{\c}%s{\c}%s{\c}%s{\c}cart{\c}%s\n" % (goods['uid'], str(goods['goods_id']), str(goods['brand_id']), goods['brand_name'], goods['cart_ctime']))
+        for goods in user_see_goodsid_list:
+            if goods['goods_id'] == None or goods['goods_id'] == '':
+                continue
+            sql = "select brand_id, brand_name from t_pandora_goods where goods_id=%s" % (goods['goods_id'])
+            res = db.query(sql)
+            if len(res) == 0:
+                continue
+            goods['brand_id'] = res[0]['brand_id']
+            goods['brand_name'] = res[0]['brand_name']
+            if goods['brand_id'] == None:
+                continue
+            if goods['brand_name'] == None:
+                continue
+            #action = see
+            f.write("%s{\c}%s{\c}%s{\c}%s{\c}see{\c}%s\n" % (goods['uid'], str(goods['goods_id']), str(goods['brand_id']), goods['brand_name'], goods['see_ctime']))
+
+
     except Exception, e:
         print e
         print traceback.print_exc()
@@ -173,7 +214,7 @@ def main():
         print "periods解析失败"
         return
 
-    #get_goods_brand_info()
+    get_goods_brand_info()
     cal_user_brand_preference_new(args.periods)
     return
 

@@ -22,8 +22,11 @@ def get_goods_lv3_category_info():
     user_order_goodsid_list = []
     with open("data/user_action_goodsid.txt", "r") as f:
         for line in f:
-            uid, goods_id, order_ctime, action = line.strip().split("\t")
-            user_order_goodsid_list.append({'uid' : uid, 'goods_id' : goods_id, 'order_ctime' : order_ctime})
+            if len(line.split("\t")) != 4:
+                continue
+            uid, goods_id, ctime, action = line.strip().split("\t")
+            if action == "order":
+                user_order_goodsid_list.append({'uid' : uid, 'goods_id' : goods_id, 'order_ctime' : ctime})
 
     #扩展三级类目信息
     host, port, user, pwd, db = MySQLConfigApi.get_param_from_ini_file('higo_goods', 0, False)
@@ -97,6 +100,62 @@ def cal_user_lv3_preference(periods):
  
     f1.close()
     return
+def cal_user_lv3_preference_new(periods):
+    #cmd = "rm -rf data/user_" + periods + "_category_preference.txt"
+    #os.system(cmd)
+    action_weight = {
+    'click' : 1,
+    'like': 2,
+    'cart' : 5,
+    'order' : 10 
+    }
+
+    #tf
+    uid_category_id_map = {}
+    category_id_2_name_map = {}
+    #idf
+    category_id_uid_map = {}
+    idf_map = {}
+    weight_map = {}
+    uid_sum = 0
+    f1 = open("data/user_" + periods + "_lv3_preference.txt", "w")
+    with open("data/user_n_category_info.txt") as f:
+        for line in f:
+            if len(line.split("\t")) != 6:
+                continue
+            uid, goods_id, category_id, category_name, action,order_ctime = line.strip().split("\t")
+            if category_id not in category_id_2_name_map:
+                category_id_2_name_map[category_id] = category_name
+            if uid not in uid_category_id_map:
+                uid_category_id_map.setdefault(uid, {})
+            if category_id not in uid_category_id_map[uid]:
+                uid_category_id_map[uid][category_id] = 1
+            else:
+                uid_category_id_map[uid][category_id] += 1
+            if category_id not in category_id_uid_map:
+                category_id_uid_map[category_id] = [uid]
+            elif uid not in category_id_uid_map[category_id]:
+                category_id_uid_map[category_id].append(uid)
+        uid_sum = len(uid_category_id_map.keys())
+        for k, l in category_id_uid_map.items():
+            idf_map[k] = math.log(uid_sum / (len(l) + 1), 10)
+
+        for uid in uid_category_id_map.keys():
+            weight_map[uid] = {}
+            #euclid norm
+            norm = 0.0
+            for category_id in uid_category_id_map[uid].keys():
+
+                weight_map[uid][category_id] = uid_category_id_map[uid][category_id] * idf_map[category_id]
+                norm += weight_map[uid][category_id]**2
+            norm = math.sqrt(norm)
+            for category_id in uid_category_id_map[uid].keys():
+                weight_map[uid][category_id] = weight_map[uid][category_id] / norm
+                f1.write("%s{\c}%s{\c}%s{\c}%s\n" % (uid, category_id, category_id_2_name_map[category_id], weight_map[uid][category_id]))
+
+    f1.close()
+
+    return
 def load_to_hive():
     return
 def load_to_redis():
@@ -115,11 +174,13 @@ def main():
         print "periods解析失败"
         return
 
-    get_goods_lv3_category_info()
+    #get_goods_lv3_category_info()
     #gc.enable()
     #gc.collect()
     #gc.disable()
-    cal_user_lv3_preference(args.periods)
+    #cal_user_lv3_preference(args.periods)
+
+    cal_user_lv3_preference_new(args.periods)
     load_to_hive()
     return
 

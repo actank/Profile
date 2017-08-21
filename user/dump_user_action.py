@@ -56,7 +56,53 @@ def dump_user_id():
     return
     
 
-def dump_user_click_goods_id():
+#see 数据过多，需要mapreduce
+def dump_user_click_goods_id(periods):
+    today = datetime.datetime.today()
+    if periods == "long" :
+        days = 210
+    elif periods == "middle" :
+        days = 90
+    elif periods == "short":
+        days = 30
+    else:
+        return -1
+
+    #数据太多，暂时用5天的，之后mapreduce计算
+    days = 5
+    os.system("rm -rf user_see")
+    hive_cmd = "hadoop fs -getmerge "
+    for i in range(1, days):
+        date_begin = (today - datetime.timedelta(days=i)).strftime('%Y-%m-%d')
+        hive_cmd += "/user/hadoop/user_tag/common/user_see/see_%s " % (date_begin)
+    hive_cmd += "user_see"
+    os.system(hive_cmd)
+
+    user_id = []
+    with open('data/user_id.txt', 'r') as f:
+        for line in f.readlines():
+            line = line.strip()
+            user_id.append(line)
+    try:
+        ret = []
+        fs = open('user_see', "r")
+        with open('data/user_action_goodsid.txt', 'a+') as f:
+            for line in fs:
+                line = line.strip().split("\t")
+                uid = line[0]
+                if uid not in user_id:
+                    continue
+                goods_id = line[1]
+                ctime = float(line[2])
+                #ctime = ctime[0:len(ctime) - 2]
+                ctime = datetime.datetime.fromtimestamp(ctime).strftime("%Y-%m-%d") 
+                f.write("%s\t%s\t%s\tsee\n" % (uid, goods_id, ctime))
+    except Exception,e:
+        print e
+        print traceback.print_exc()
+    finally:
+        fs.close()
+
     return
 
 def dump_user_cart_goods_id(periods):
@@ -72,7 +118,7 @@ def dump_user_cart_goods_id(periods):
 
     os.system("rm -rf shop_cart")
     hive_cmd = "hadoop fs -getmerge "
-    for i in range(days):
+    for i in range(1, days):
         date_begin = (today - datetime.timedelta(days=i)).strftime('%Y-%m-%d')
         hive_cmd += "/user/hadoop/user_tag/common/shop_cart/cart_%s " % (date_begin)
     hive_cmd += "shop_cart"
@@ -137,7 +183,7 @@ def dump_user_order_goods_id(periods):
         ret = []
         with open('data/user_action_goodsid.txt', 'w') as f:
             for uid in user_id:
-                sql = "select order_id, goods_id, order_ctime from (select o.order_id as order_id ,goods_id as goods_id, order_ctime from t_pandora_order o left join t_pandora_order_item i on o.order_id = i.order_id where o.buyer_id=%s and o.order_ctime >= '%s' and o.order_ctime <= '%s' and o.order_status=2) t" % (uid, date_begin, date_end)
+                sql = "select order_id, goods_id, order_ctime from (select o.order_id as order_id ,goods_id as goods_id, order_ctime from t_pandora_order o left join t_pandora_order_item i on o.order_id = i.order_id where o.buyer_id=%s and o.order_ctime >= '%s' and o.order_ctime <= '%s' and o.order_state=3) t" % (uid, date_begin, date_end)
                 res = db_order.query(sql)
                 for line in res:
                     if line['goods_id'] == None:
@@ -171,8 +217,9 @@ def main():
         print "periods解析失败"
         return
     #dump_user_id()
-    #dump_user_order_goods_id(args.periods)
-    dump_user_cart_goods_id(args.periods)
+    dump_user_order_goods_id(args.periods)
+    #dump_user_cart_goods_id(args.periods)
+    #dump_user_click_goods_id(args.periods)
     #dump_user_favorite_goods_id(args.periods)
     return
         
