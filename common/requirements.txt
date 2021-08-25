@@ -53,7 +53,7 @@ six==1.10.0
 sklearn==0.0
 sseclient==0.0.8
 subprocess32==3.2.7
-tensorflow==0.10.0
+tensorflow==2.5.1
 tornado==4.3
 torndb==0.3
 traitlets==4.3.0
