@@ -33,7 +33,7 @@ pickleshare==0.7.4
 Pillow==4.1.1
 prettytable==0.7.2
 prompt-toolkit==1.0.7
-protobuf==3.0.0b2
+protobuf==3.18.3
 psclient==2.0
 ptyprocess==0.5.1
 pyasn1==0.2.3
